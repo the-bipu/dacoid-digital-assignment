@@ -28,6 +28,8 @@ const Calendar = () => {
         type: ''
     });
 
+    const [selected, setSelected] = useState<number | null>(null);
+
     const [events, setEvents] = useState<EventData[]>([]);
     const [eventType, setEventType] = useState<string>('');
 
@@ -97,7 +99,8 @@ const Calendar = () => {
 
         const event: EventData = {
             ...formData,
-            day: `${selectedDay} ${currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}`
+            day: `${selectedDay} ${currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}`,
+            type: eventType
         };
 
         const storedEvents = localStorage.getItem('events');
@@ -115,6 +118,13 @@ const Calendar = () => {
 
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const calendarDays = generateCalendarDays();
+
+    const isToday = (day: number) => {
+        const today = new Date();
+        return today.getDate() === day &&
+            today.getMonth() === currentDate.getMonth() &&
+            today.getFullYear() === currentDate.getFullYear();
+    };
 
     return (
         <div className="w-full h-full text-center">
@@ -136,19 +146,13 @@ const Calendar = () => {
 
                 {/* Render the calendar days */}
                 {calendarDays.map((day, index) => (
-                    <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer ${day ? 'bg-white' : 'bg-gray-100'} parentCard`}>
+                    <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer parentCard ${day ? 'bg-white' : 'bg-gray-100'} ${day && isToday(day) ? 'bg-blue-500 text-white' : ''} ${selected === day ? 'bg-green-500 text-white' : ''}`} onClick={() => setSelected(day)}>
                         {day}
-
-                        {day && (
-                            <div className='absolute bottom-2 left-2 border border-slate-300 h-8 w-8 rounded flex items-center justify-center text-lg childCard'>
-                                {getEventsForDay(day).length}
-                            </div>
-                        )}
 
                         {day && (
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button variant={'outline'} onClick={() => setSelectedDay(day)} className='absolute top-2 right-2 border border-slate-300 rounded p-2 childCard'>
+                                    <Button variant={'outline'} onClick={() => setSelectedDay(day)} className='absolute top-2 left-2 border border-slate-300 rounded p-2 childCard'>
                                         <Pencil1Icon />
                                     </Button>
                                 </DialogTrigger>
@@ -206,24 +210,26 @@ const Calendar = () => {
                         {day && (
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button variant={'outline'} className='absolute top-2 left-2 border border-slate-300 rounded p-2 childCard'>
-                                        <EyeOpenIcon />
+                                    <Button variant={'outline'} className='absolute h-6 bottom-2 left-2 border border-slate-300 rounded px-2 childCard'>
+                                        {getEventsForDay(day).length} events
                                     </Button>
                                 </DialogTrigger>
-                                <DialogContent className='bg-white'>
-                                    <DialogHeader>
-                                        <DialogTitle>Events for this day;</DialogTitle>
-                                        <DialogDescription>
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                {getEventsForDay(day).map((event, idx) => (
-                                                    <div key={idx}>
-                                                        <div>{event.name}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                </DialogContent>
+                                {getEventsForDay(day).length > 0 && (
+                                    <DialogContent className='bg-white'>
+                                        <DialogHeader>
+                                            <DialogTitle>Events for this day;</DialogTitle>
+                                            <DialogDescription>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    {getEventsForDay(day).map((event, idx) => (
+                                                        <div key={idx}>
+                                                            <div>{event.name}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                    </DialogContent>
+                                )}
                             </Dialog>
                         )}
 

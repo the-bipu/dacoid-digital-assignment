@@ -89,6 +89,18 @@ body {
   color: var(--foreground);
 }
 
+html::-webkit-scrollbar {
+  width: .0rem;
+}
+
+html::-webkit-scrollbar-track {
+  background: black;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: #ffffff;
+}
+
 .parentCard {
   transition: all;
 
