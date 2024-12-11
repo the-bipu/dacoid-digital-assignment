@@ -6,7 +6,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { EyeOpenIcon, Pencil1Icon } from '@radix-ui/react-icons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 
 type EventData = {
@@ -19,8 +19,6 @@ type EventData = {
 };
 
 const Calendar = () => {
-    const { toast } = useToast();
-
     const [currentDate, setCurrentDate] = useState(new Date());
     const [currentDay, setCurrentDay] = useState<number | null>(null);
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -32,9 +30,6 @@ const Calendar = () => {
         day: '',
         type: ''
     });
-
-    const [selected, setSelected] = useState<number | null>(null);
-    const [showEvents, setShowEvents] = useState(false);
 
     const [events, setEvents] = useState<EventData[]>([]);
     const [eventType, setEventType] = useState<string>('');
@@ -104,6 +99,7 @@ const Calendar = () => {
         });
     };
 
+    // for adding new events
     const handleAddEvent = () => {
         if (selectedDay === null) return;
 
@@ -119,10 +115,15 @@ const Calendar = () => {
         events.push(event);
         localStorage.setItem('events', JSON.stringify(events));
 
+        console.log('Toast triggered:', formData.name);
         toast({
             title: `Scheduled: ${formData.name}`,
-            description: `${formData.description}`,
-        });
+            description: (
+                <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+                    <code className="text-white">{formData.description}</code>
+                </pre>
+            ),
+        })
 
         loadEventsFromStorage();
 
@@ -130,6 +131,20 @@ const Calendar = () => {
         setFormData({ name: '', startTime: '', endTime: '', description: '', day: '', type: '' });
         setEventType('');
         setSelectedDay(null);
+    };
+
+    // for deleting existing events
+    const handleDeleteEvent = (eventToDelete: EventData) => {
+        const updatedEvents = events.filter((event) => event !== eventToDelete);
+
+        // Update state and localStorage
+        setEvents(updatedEvents);
+        localStorage.setItem('events', JSON.stringify(updatedEvents));
+
+        toast({
+            title: `Deleted: ${eventToDelete.name}`,
+            description: `Event "${eventToDelete.name}" has been removed.`,
+        });
     };
 
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -250,7 +265,7 @@ const Calendar = () => {
                 <div className={`${currentDay ? 'w-3/12' : 'w-0'} h-full p-8 pl-0 flex flex-col items-start justify-center overflow-y-auto`}>
 
                     {getEventsForDay(currentDay).length > 0 ? (
-                        <div className='bg-white'>
+                        <div className='bg-white w-full'>
                             <div>
                                 <div className='mb-4 flex flex-row justify-between'>
                                     <p>Events for this day;</p>
@@ -265,6 +280,9 @@ const Calendar = () => {
                                                     <CardTitle>{event.name}</CardTitle>
                                                     <CardDescription>{event.description}</CardDescription>
                                                 </CardHeader>
+                                                <CardContent>
+                                                    <Button className='h-6' onClick={() => handleDeleteEvent(event)}>Delete</Button>
+                                                </CardContent>
                                             </Card>
 
                                         ))}
