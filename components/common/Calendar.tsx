@@ -6,6 +6,8 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { EyeOpenIcon, Pencil1Icon } from '@radix-ui/react-icons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 
 type EventData = {
     name: string;
@@ -17,7 +19,10 @@ type EventData = {
 };
 
 const Calendar = () => {
+    const { toast } = useToast();
+
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDay, setCurrentDay] = useState<number | null>(null);
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
     const [formData, setFormData] = useState<EventData>({
         name: '',
@@ -29,15 +34,20 @@ const Calendar = () => {
     });
 
     const [selected, setSelected] = useState<number | null>(null);
+    const [showEvents, setShowEvents] = useState(false);
 
     const [events, setEvents] = useState<EventData[]>([]);
     const [eventType, setEventType] = useState<string>('');
 
-    useEffect(() => {
+    const loadEventsFromStorage = () => {
         const storedEvents = localStorage.getItem('events');
         if (storedEvents) {
             setEvents(JSON.parse(storedEvents));
         }
+    };
+
+    useEffect(() => {
+        loadEventsFromStorage();
     }, []);
 
     // this get the days in the current month
@@ -109,11 +119,17 @@ const Calendar = () => {
         events.push(event);
         localStorage.setItem('events', JSON.stringify(events));
 
+        toast({
+            title: `Scheduled: ${formData.name}`,
+            description: `${formData.description}`,
+        });
+
+        loadEventsFromStorage();
+
         // Reset form and close dialog
         setFormData({ name: '', startTime: '', endTime: '', description: '', day: '', type: '' });
         setEventType('');
         setSelectedDay(null);
-        alert('Event added successfully!');
     };
 
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -127,116 +143,143 @@ const Calendar = () => {
     };
 
     return (
-        <div className="w-full h-full text-center">
-            <div className="flex justify-between items-center mb-4 gap-4">
-                <Button onClick={handlePrevMonth} variant={'default'}>Previous</Button>
-                <h2 className="text-xl font-bold">
-                    {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
-                </h2>
-                <Button onClick={handleNextMonth} variant={'default'}>Next</Button>
-            </div>
-            <div className="grid grid-cols-7 gap-2">
+        <div className="w-full h-full flex flex-row">
+            <div className={`${currentDay ? 'w-9/12' : 'w-full'} h-full text-center p-8`}>
 
-                {/* Render days of the week */}
-                {daysOfWeek.map((day, index) => (
-                    <div key={index} className="font-bold text-gray-700">
-                        {day}
-                    </div>
-                ))}
+                <div className='mb-4'>
+                    Dynamic Event Calendar Application
+                </div>
 
-                {/* Render the calendar days */}
-                {calendarDays.map((day, index) => (
-                    <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer parentCard ${day ? 'bg-white' : 'bg-gray-100'} ${day && isToday(day) ? 'bg-blue-500 text-white' : ''} ${selected === day ? 'bg-green-500 text-white' : ''}`} onClick={() => setSelected(day)}>
-                        {day}
+                <div className="flex justify-between items-center mb-4 gap-4">
+                    <Button onClick={handlePrevMonth} variant={'default'}>Previous</Button>
+                    <h2 className="text-xl font-bold">
+                        {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
+                    </h2>
+                    <Button onClick={handleNextMonth} variant={'default'}>Next</Button>
+                </div>
+                <div className="grid grid-cols-7 gap-2">
 
-                        {day && (
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button variant={'outline'} onClick={() => setSelectedDay(day)} className='absolute top-2 left-2 border border-slate-300 rounded p-2 childCard'>
-                                        <Pencil1Icon />
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className='bg-white'>
-                                    <DialogHeader>
-                                        <DialogTitle>Add New Event for {day} {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}</DialogTitle>
-                                        <DialogDescription>
-                                            <form className='relative w-full h-full flex flex-col gap-4 mt-4'>
+                    {/* Render days of the week */}
+                    {daysOfWeek.map((day, index) => (
+                        <div key={index} className="font-bold text-gray-700">
+                            {day}
+                        </div>
+                    ))}
 
-                                                <div className='flex flex-col'>
-                                                    <Label htmlFor="name">Title</Label>
-                                                    <Input type="text" name='name' value={formData.name} onChange={handleInputChange} className='bg-white p-2 w-full rounded-lg mt-1 outline-none' required />
-                                                </div>
+                    {/* Render the calendar days */}
+                    {calendarDays.map((day, index) => (
+                        <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer parentCard ${day ? 'bg-white' : 'bg-gray-100'} ${day && isToday(day) ? 'bg-[#67abff]' : ''}`}>
+                            {day}
 
-                                                <div className='flex flex-col'>
-                                                    <Label htmlFor="type" className='mb-2'>Type</Label>
-                                                    <Select value={eventType} onValueChange={setEventType}>
-                                                        <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="Type" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="work">Work</SelectItem>
-                                                            <SelectItem value="personal">Personal</SelectItem>
-                                                            <SelectItem value="others">Others</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                <div className='flex flex-row gap-4'>
-                                                    <div className="flex flex-col w-1/2">
-                                                        <Label htmlFor="startTime">Start Time</Label>
-                                                        <Input type="time" name="startTime" value={formData.startTime} onChange={handleInputChange} className="bg-white p-2 w-full rounded-lg mt-1 outline-none" required />
-                                                    </div>
-                                                    <div className="flex flex-col w-1/2">
-                                                        <Label htmlFor="endTime">End Time</Label>
-                                                        <Input type="time" name="endTime" value={formData.endTime} onChange={handleInputChange} className="bg-white p-2 w-full rounded-lg mt-1 outline-none" required />
-                                                    </div>
-                                                </div>
-
-                                                <div className='flex flex-col'>
-                                                    <Label htmlFor="description">Description</Label>
-                                                    <Textarea name='description' value={formData.description} onChange={handleInputChange} className='bg-white p-2 w-full rounded-lg mt-1 outline-none' required />
-                                                </div>
-
-                                                <Button type="button" onClick={handleAddEvent} variant={'default'} className='mt-2'>
-                                                    Add
-                                                </Button>
-                                            </form>
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                </DialogContent>
-                            </Dialog>
-                        )}
-
-                        {day && (
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button variant={'outline'} className='absolute h-6 bottom-2 left-2 border border-slate-300 rounded px-2 childCard'>
-                                        {getEventsForDay(day).length} events
-                                    </Button>
-                                </DialogTrigger>
-                                {getEventsForDay(day).length > 0 && (
+                            {day && (
+                                <Dialog
+                                    open={selectedDay === day}
+                                    onOpenChange={(isOpen) => {
+                                        if (!isOpen) setSelectedDay(null);
+                                    }}
+                                >
+                                    <DialogTrigger asChild>
+                                        <Button variant={'outline'} onClick={() => setSelectedDay(day)} className='absolute top-2 left-2 border border-slate-300 rounded p-2 childCard'>
+                                            <Pencil1Icon />
+                                        </Button>
+                                    </DialogTrigger>
                                     <DialogContent className='bg-white'>
                                         <DialogHeader>
-                                            <DialogTitle>Events for this day;</DialogTitle>
+                                            <DialogTitle>Add New Event for {day} {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}</DialogTitle>
                                             <DialogDescription>
-                                                <div className="text-xs text-gray-500 mt-1">
-                                                    {getEventsForDay(day).map((event, idx) => (
-                                                        <div key={idx}>
-                                                            <div>{event.name}</div>
+                                                <form className='relative w-full h-full flex flex-col gap-4 mt-4'>
+
+                                                    <div className='flex flex-col'>
+                                                        <Label htmlFor="name">Title</Label>
+                                                        <Input type="text" name='name' value={formData.name} onChange={handleInputChange} className='bg-white p-2 w-full rounded-lg mt-1 outline-none' required />
+                                                    </div>
+
+                                                    <div className='flex flex-col'>
+                                                        <Label htmlFor="type" className='mb-2'>Type</Label>
+                                                        <Select value={eventType} onValueChange={setEventType}>
+                                                            <SelectTrigger className="w-full">
+                                                                <SelectValue placeholder="Type" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="work">Work</SelectItem>
+                                                                <SelectItem value="personal">Personal</SelectItem>
+                                                                <SelectItem value="others">Others</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className='flex flex-row gap-4'>
+                                                        <div className="flex flex-col w-1/2">
+                                                            <Label htmlFor="startTime">Start Time</Label>
+                                                            <Input type="time" name="startTime" value={formData.startTime} onChange={handleInputChange} className="bg-white p-2 w-full rounded-lg mt-1 outline-none" required />
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                        <div className="flex flex-col w-1/2">
+                                                            <Label htmlFor="endTime">End Time</Label>
+                                                            <Input type="time" name="endTime" value={formData.endTime} onChange={handleInputChange} className="bg-white p-2 w-full rounded-lg mt-1 outline-none" required />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className='flex flex-col'>
+                                                        <Label htmlFor="description">Description</Label>
+                                                        <Textarea name='description' value={formData.description} onChange={handleInputChange} className='bg-white p-2 w-full rounded-lg mt-1 outline-none' required />
+                                                    </div>
+
+                                                    <Button type="button" onClick={handleAddEvent} variant={'default'} className='mt-2'>
+                                                        Add
+                                                    </Button>
+                                                </form>
                                             </DialogDescription>
                                         </DialogHeader>
                                     </DialogContent>
-                                )}
-                            </Dialog>
-                        )}
+                                </Dialog>
+                            )}
 
-                    </div>
-                ))}
+                            {day && (
+                                <Button variant={'outline'} className='absolute h-6 bottom-2 left-2 border border-slate-300 rounded px-2 childCard' onClick={() => setCurrentDay(day)}>
+                                    {getEventsForDay(day).length} events
+                                </Button>
+                            )}
 
+                        </div>
+                    ))}
+
+                </div>
             </div>
+
+            {currentDay && (
+                <div className={`${currentDay ? 'w-3/12' : 'w-0'} h-full p-8 pl-0 flex flex-col items-start justify-center overflow-y-auto`}>
+
+                    {getEventsForDay(currentDay).length > 0 ? (
+                        <div className='bg-white'>
+                            <div>
+                                <div className='mb-4 flex flex-row justify-between'>
+                                    <p>Events for this day;</p>
+                                    <Button variant={'default'} onClick={() => setCurrentDay(null)} className='mb-4 h-6'>Close</Button>
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-500 flex flex-col gap-4">
+                                        {getEventsForDay(currentDay).map((event, idx) => (
+
+                                            <Card key={idx} className='cursor-pointer'>
+                                                <CardHeader>
+                                                    <CardTitle>{event.name}</CardTitle>
+                                                    <CardDescription>{event.description}</CardDescription>
+                                                </CardHeader>
+                                            </Card>
+
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div>
+                            No Events Scheduled
+                        </div>
+                    )}
+
+                </div>
+            )}
         </div>
     );
 };
