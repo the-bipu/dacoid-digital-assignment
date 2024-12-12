@@ -133,14 +133,14 @@ const Calendar = () => {
         // Validate duplicate event
         const dayString = `${selectedDay} ${currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}`;
 
-        
+
         const storedEvents = localStorage.getItem('events');
         const events = storedEvents ? JSON.parse(storedEvents) : [];
-        
+
         const isDuplicate = events.some(
             (event: { name: string; day: string; }) => event.name.trim().toLowerCase() === formData.name.trim().toLowerCase() && event.day === dayString
         );
-        
+
         if (isDuplicate) {
             toast({
                 title: "Error",
@@ -226,7 +226,11 @@ const Calendar = () => {
 
                     {/* Render the calendar days */}
                     {calendarDays.map((day, index) => (
-                        <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer parentCard ${day ? 'bg-white' : 'bg-gray-100'} ${day && isToday(day) && 'bg-[#1a1a1a] text-white'} ${currentDay === day && 'bg-[#44c34e] text-white'}`}>
+                        <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer parentCard 
+                            ${day && isToday(day) ? 'bg-[#1a1a1a] text-white' : ''} 
+                            ${currentDay === day ? 'bg-[#44c34e] text-white' : ''}
+                            ${day ? '' : 'bg-gray-100'} 
+                        `}>
                             {day}
 
                             {day && (
