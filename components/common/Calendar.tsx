@@ -291,8 +291,17 @@ const Calendar = () => {
                             </div>
                         </div>
                     ) : (
-                        <div>
-                            No Events Scheduled
+                        <div className='flex w-full h-full flex-col'>
+                            <div className='w-full mb-4 flex flex-row justify-between'>
+                                <p> No Events Scheduled;</p>
+                                <Button variant={'default'} onClick={() => setCurrentDay(null)} className='mb-4 h-6'>Close</Button>
+                            </div>
+                            <Card className='cursor-pointer'>
+                                <CardHeader>
+                                    <CardTitle>Oops</CardTitle>
+                                    <CardDescription>Nothing Here</CardDescription>
+                                </CardHeader>
+                            </Card>
                         </div>
                     )}
 
