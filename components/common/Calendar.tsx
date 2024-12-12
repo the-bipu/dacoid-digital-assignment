@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { EyeOpenIcon, Pencil1Icon } from '@radix-ui/react-icons';
+import { Pencil1Icon } from '@radix-ui/react-icons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
@@ -102,16 +102,58 @@ const Calendar = () => {
 
     // for adding new events
     const handleAddEvent = () => {
-        if (selectedDay === null) return;
+        if (selectedDay === null) {
+            toast({
+                title: "Error",
+                description: "Please select a day to add an event.",
+            });
+            return;
+        }
+
+        // Check for empty name
+        if (!formData.name.trim()) {
+            toast({
+                title: "Error",
+                description: "Event title cannot be empty.",
+            });
+            return;
+        }
+
+        // Validate start and end time
+        const startTime = new Date(`1970-01-01T${formData.startTime}`);
+        const endTime = new Date(`1970-01-01T${formData.endTime}`);
+        if (startTime >= endTime) {
+            toast({
+                title: "Error",
+                description: "Start time must be earlier than end time.",
+            });
+            return;
+        }
+
+        // Validate duplicate event
+        const dayString = `${selectedDay} ${currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}`;
+
+        
+        const storedEvents = localStorage.getItem('events');
+        const events = storedEvents ? JSON.parse(storedEvents) : [];
+        
+        const isDuplicate = events.some(
+            (event: { name: string; day: string; }) => event.name.trim().toLowerCase() === formData.name.trim().toLowerCase() && event.day === dayString
+        );
+        
+        if (isDuplicate) {
+            toast({
+                title: "Error",
+                description: `An event with the title "${formData.name}" already exists for this day.`,
+            });
+            return;
+        }
 
         const event: EventData = {
             ...formData,
-            day: `${selectedDay} ${currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}`,
+            day: dayString,
             type: eventType
         };
-
-        const storedEvents = localStorage.getItem('events');
-        const events = storedEvents ? JSON.parse(storedEvents) : [];
 
         events.push(event);
         localStorage.setItem('events', JSON.stringify(events));
@@ -184,7 +226,7 @@ const Calendar = () => {
 
                     {/* Render the calendar days */}
                     {calendarDays.map((day, index) => (
-                        <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer parentCard ${day ? 'bg-white' : 'bg-gray-100'} ${day && isToday(day) && 'bg-[#1a1a1a] text-white'} `}>
+                        <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer parentCard ${day ? 'bg-white' : 'bg-gray-100'} ${day && isToday(day) && 'bg-[#1a1a1a] text-white'} ${currentDay === day && 'bg-[#44c34e] text-white'}`}>
                             {day}
 
                             {day && (
@@ -202,7 +244,7 @@ const Calendar = () => {
                                     <DialogContent className='bg-white'>
                                         <DialogHeader>
                                             <DialogTitle>Add New Event for {day} {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}</DialogTitle>
-                                            <DialogDescription>
+                                            <div>
                                                 <form className='relative w-full h-full flex flex-col gap-4 mt-4'>
 
                                                     <div className='flex flex-col'>
@@ -244,7 +286,7 @@ const Calendar = () => {
                                                         Add
                                                     </Button>
                                                 </form>
-                                            </DialogDescription>
+                                            </div>
                                         </DialogHeader>
                                     </DialogContent>
                                 </Dialog>
