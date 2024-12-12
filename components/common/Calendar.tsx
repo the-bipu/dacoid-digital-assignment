@@ -33,6 +33,7 @@ const Calendar = () => {
 
     const [events, setEvents] = useState<EventData[]>([]);
     const [eventType, setEventType] = useState<string>('');
+    const [searchTerm, setSearchTerm] = useState<string>('');
 
     const loadEventsFromStorage = () => {
         const storedEvents = localStorage.getItem('events');
@@ -159,7 +160,7 @@ const Calendar = () => {
 
     return (
         <div className="w-full h-full flex flex-row">
-            <div className={`${currentDay ? 'w-9/12' : 'w-full'} h-full text-center p-8`}>
+            <div className={`${currentDay ? 'w-9/12' : 'w-full'} h-full text-center p-8 pr-7`}>
 
                 <div className='mb-4'>
                     Dynamic Event Calendar Application
@@ -183,7 +184,7 @@ const Calendar = () => {
 
                     {/* Render the calendar days */}
                     {calendarDays.map((day, index) => (
-                        <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer parentCard ${day ? 'bg-white' : 'bg-gray-100'} ${day && isToday(day) ? 'bg-[#67abff]' : ''}`}>
+                        <div key={index} className={`h-24 p-2 relative flex items-center justify-center border rounded text-2xl text-center cursor-pointer parentCard ${day ? 'bg-white' : 'bg-gray-100'} ${day && isToday(day) && 'bg-[#1a1a1a] text-white'} `}>
                             {day}
 
                             {day && (
@@ -262,7 +263,7 @@ const Calendar = () => {
             </div>
 
             {currentDay && (
-                <div className={`${currentDay ? 'w-3/12' : 'w-0'} h-full p-8 pl-0 flex flex-col items-start justify-center overflow-y-auto`}>
+                <div className={`${currentDay ? 'w-3/12' : 'w-0'} h-full p-8 pl-1 flex flex-col items-start justify-center overflow-y-auto`}>
 
                     {getEventsForDay(currentDay).length > 0 ? (
                         <div className='bg-white w-full'>
@@ -271,21 +272,27 @@ const Calendar = () => {
                                     <p>Events for this day;</p>
                                     <Button variant={'default'} onClick={() => setCurrentDay(null)} className='mb-4 h-6'>Close</Button>
                                 </div>
+                                <div className='mb-4 px-1'>
+                                    <Input className='w-full h-10' placeholder='Search Event for this day;' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value.toLowerCase())} />
+                                </div>
                                 <div>
+
                                     <div className="text-xs text-gray-500 flex flex-col gap-4">
-                                        {getEventsForDay(currentDay).map((event, idx) => (
+                                        {getEventsForDay(currentDay)
+                                            .filter((event) => event.name.toLowerCase().includes(searchTerm))
+                                            .map((event, idx) => (
 
-                                            <Card key={idx} className='cursor-pointer'>
-                                                <CardHeader>
-                                                    <CardTitle>{event.name}</CardTitle>
-                                                    <CardDescription>{event.description}</CardDescription>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <Button className='h-6' onClick={() => handleDeleteEvent(event)}>Delete</Button>
-                                                </CardContent>
-                                            </Card>
+                                                <Card key={idx} className={`cursor-pointer ${event.type === 'work' && 'bg-red-600 text-white'} ${event.type === 'personal' && 'bg-yellow-600 text-white'} ${event.type === 'others' && 'bg-blue-600 text-white'}`}>
+                                                    <CardHeader>
+                                                        <CardTitle className='text-base font-medium'>{event.name}</CardTitle>
+                                                        <CardDescription className='text-white'>{event.description}</CardDescription>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <Button className='h-6' onClick={() => handleDeleteEvent(event)}>Delete</Button>
+                                                    </CardContent>
+                                                </Card>
 
-                                        ))}
+                                            ))}
                                     </div>
                                 </div>
                             </div>
