@@ -7,7 +7,7 @@ import { Textarea } from '../ui/textarea';
 import { Pencil1Icon } from '@radix-ui/react-icons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from "@/hooks/use-toast";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 type EventData = {
     name: string;
@@ -34,6 +34,10 @@ const Calendar = () => {
     const [events, setEvents] = useState<EventData[]>([]);
     const [eventType, setEventType] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState<string>('');
+
+    // for editing
+    const [editingEvent, setEditingEvent] = useState<EventData | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
 
     const loadEventsFromStorage = () => {
         const storedEvents = localStorage.getItem('events');
@@ -106,7 +110,6 @@ const Calendar = () => {
             );
         });
     };
-
 
     // for adding new events
     const handleAddEvent = () => {
@@ -198,6 +201,40 @@ const Calendar = () => {
         });
     };
 
+    const handleEditEvent = (event: EventData) => {
+        setEditingEvent(event); // Set the whole event object for editing
+        setIsEditing(true); // Enable the edit mode
+        setFormData({ ...event }); // Pre-fill the form with the event data
+    };
+
+    const handleUpdateEvent = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (editingEvent) {
+            // Update event in state based on the edited form data
+            const updatedEvents = events.map((event) =>
+                // Match events based on all properties (avoid using `JSON.stringify`)
+                event.name === editingEvent.name && event.day === editingEvent.day ? editingEvent : event
+            );
+
+            // Update localStorage with the new events array
+            localStorage.setItem('events', JSON.stringify(updatedEvents));
+
+            // Reset state and form
+            setEditingEvent(null);
+            setIsEditing(false);
+            setFormData({ name: '', startTime: '', endTime: '', description: '', day: '', type: '' });
+
+            loadEventsFromStorage();
+
+            // Show success toast
+            toast({
+                title: `Updated: ${editingEvent.name}`,
+                description: `Event "${editingEvent.name}" has been updated.`,
+            });
+        }
+    };
+
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const calendarDays = generateCalendarDays();
 
@@ -206,6 +243,29 @@ const Calendar = () => {
         return today.getDate() === day &&
             today.getMonth() === currentDate.getMonth() &&
             today.getFullYear() === currentDate.getFullYear();
+    };
+
+    // for exporting the data for particular month
+    const exportEventsForMonth = (year: number, month: number) => {
+        const filteredEvents = events.filter((event) => {
+            const eventDate = new Date(event.day);
+            return eventDate.getFullYear() === year && eventDate.getMonth() === month;
+        });
+
+        const jsonData = JSON.stringify(filteredEvents, null, 2);
+
+        const blob = new Blob([jsonData], { type: 'application/json' });
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `events_${year}-${month + 1}.json`;
+        link.click();
+    };
+
+    const handleExportEvents = () => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        exportEventsForMonth(year, month);
     };
 
     return (
@@ -221,7 +281,10 @@ const Calendar = () => {
                     <h2 className="text-xl font-bold">
                         {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
                     </h2>
-                    <Button onClick={handleNextMonth} variant={'default'}>Next</Button>
+                    <div className='flex flex-row gap-4'>
+                        <Button onClick={handleExportEvents} variant={'default'}>Export</Button>
+                        <Button onClick={handleNextMonth} variant={'default'}>Next</Button>
+                    </div>
                 </div>
                 <div className="grid grid-cols-7 gap-2">
 
@@ -341,8 +404,76 @@ const Calendar = () => {
                                                         <CardTitle className='text-base font-medium'>{event.name}</CardTitle>
                                                         <CardDescription className='text-white'>{event.description}</CardDescription>
                                                     </CardHeader>
-                                                    <CardContent>
-                                                        <Button className='h-6' onClick={() => handleDeleteEvent(event)}>Delete</Button>
+                                                    <CardContent className='flex flex-row gap-2'>
+                                                        <Dialog>
+                                                            <DialogTrigger>
+                                                                <Button className='h-6'>Delete</Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className='bg-white'>
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Are you absolutely sure?</DialogTitle>
+                                                                    <DialogDescription className='flex flex-col gap-5'>
+                                                                        <span>This action cannot be undone. This will permanently delete your event from the servers.</span>
+                                                                        <Button variant={'destructive'} onClick={() => handleDeleteEvent(event)}>Delete</Button>
+                                                                    </DialogDescription>
+                                                                </DialogHeader>
+                                                            </DialogContent>
+                                                        </Dialog>
+
+
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button className='h-6' onClick={() => handleEditEvent(event)}>Edit</Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className='bg-white'>
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Edit Event</DialogTitle>
+                                                                    <DialogDescription>
+                                                                        {isEditing && editingEvent && (
+                                                                            <form onSubmit={handleUpdateEvent} className='flex flex-col gap-2'>
+                                                                                <Input
+                                                                                    type="text"
+                                                                                    value={editingEvent.name}
+                                                                                    onChange={(e) =>
+                                                                                        setEditingEvent({ ...editingEvent, name: e.target.value })
+                                                                                    }
+                                                                                    placeholder="Event Title"
+                                                                                    required
+                                                                                />
+                                                                                <Input
+                                                                                    type="time"
+                                                                                    value={editingEvent.startTime}
+                                                                                    onChange={(e) =>
+                                                                                        setEditingEvent({ ...editingEvent, startTime: e.target.value })
+                                                                                    }
+                                                                                    required
+                                                                                />
+                                                                                <Input
+                                                                                    type="time"
+                                                                                    value={editingEvent.endTime}
+                                                                                    onChange={(e) =>
+                                                                                        setEditingEvent({ ...editingEvent, endTime: e.target.value })
+                                                                                    }
+                                                                                    required
+                                                                                />
+                                                                                <Textarea
+                                                                                    value={editingEvent.description}
+                                                                                    onChange={(e) =>
+                                                                                        setEditingEvent({ ...editingEvent, description: e.target.value })
+                                                                                    }
+                                                                                    placeholder="Description"
+                                                                                />
+                                                                                <Button variant={'default'} type="submit" className='mt-4'>Update</Button>
+                                                                                <Button variant={'default'} type="button" onClick={() => setIsEditing(false)}>
+                                                                                    Cancel
+                                                                                </Button>
+                                                                            </form>
+                                                                        )}
+                                                                    </DialogDescription>
+                                                                </DialogHeader>
+                                                            </DialogContent>
+                                                        </Dialog>
+
                                                     </CardContent>
                                                 </Card>
 
@@ -368,6 +499,13 @@ const Calendar = () => {
 
                 </div>
             )}
+
+            {/* {isEditing && editingEvent && (
+                <div className="w-full h-full absolute bg-white">
+                    
+                </div>
+            )} */}
+
         </div>
     );
 };
