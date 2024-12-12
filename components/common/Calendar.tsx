@@ -94,11 +94,19 @@ const Calendar = () => {
     };
 
     const getEventsForDay = (day: number) => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
         return events.filter(event => {
-            const eventDay = new Date(event.day).getDate();
-            return eventDay === day;
+            const eventDate = new Date(event.day);
+            return (
+                eventDate.getDate() === day &&
+                eventDate.getMonth() === month &&
+                eventDate.getFullYear() === year
+            );
         });
     };
+
 
     // for adding new events
     const handleAddEvent = () => {
